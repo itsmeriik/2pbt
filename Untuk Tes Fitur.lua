@@ -629,7 +629,11 @@ local function updateESPColorForPlayer(p)
     local list = espObjects[p]
     if list then
         for _, hl in ipairs(list) do
-            if hl and hl.Parent then hl.FillColor = getESPColor(p) end
+            if hl and hl.Parent then
+                local color = getESPColor(p)
+                hl.FillColor = color
+                hl.OutlineColor = color
+            end
         end
     end
 end
