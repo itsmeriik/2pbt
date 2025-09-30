@@ -191,6 +191,23 @@ local TitleBar = Instance.new("Frame", MainFrame)
 TitleBar.Size = UDim2.new(1,0,0,36)
 TitleBar.BackgroundTransparency = 1
 
+local UnloadBtn = Instance.new("TextButton", TitleBar)
+UnloadBtn.Size = UDim2.new(0,90,0,28)
+UnloadBtn.Position = UDim2.new(1,-140,0,4)
+UnloadBtn.BackgroundColor3 = Color3.fromRGB(220,60,60)
+UnloadBtn.Font = Enum.Font.GothamBold
+UnloadBtn.TextSize = 14
+UnloadBtn.TextColor3 = Color3.fromRGB(255,255,255)
+UnloadBtn.Text = "Unload Script"
+Instance.new("UICorner", UnloadBtn).CornerRadius = UDim.new(0,6)
+
+UnloadBtn.MouseButton1Click:Connect(function()
+    if _G and _G.__TPB_CLEANUP then
+        pcall(_G.__TPB_CLEANUP)
+        print("Script Unloaded!")
+    end
+end)
+
 local DragHandle = Instance.new("TextLabel", TitleBar)
 DragHandle.Size = UDim2.new(0,28,0,28)
 DragHandle.Position = UDim2.new(0,8,0,4)
