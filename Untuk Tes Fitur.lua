@@ -166,6 +166,11 @@ local function clamp(v, a, b)
     return v
 end
 
+local function rootPartOfCharacter(char)
+    if not char then return nil end
+    return char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso") or char:FindFirstChild("UpperTorso")
+end
+
 pcall(function()
     if _G and _G.__TPB_CLEANUP then pcall(_G.__TPB_CLEANUP) end
     local old = PlayerGui:FindFirstChild("TPB_TycoonGUI_Final")
