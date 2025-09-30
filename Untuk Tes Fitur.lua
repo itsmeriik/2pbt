@@ -548,7 +548,7 @@ local function registerToggle(displayName, featureKey, onChange)
         btn.Text = displayName .. " [" .. (state and "ON" or "OFF") .. "]"
         btn.BackgroundColor3 = state and Color3.fromRGB(80,150,220) or Color3.fromRGB(36,36,36)
         updateHUD(displayName, state)
-        if type(onChange) == "function" then
+        if onChange and type(onChange) == "function" then
             local ok, err = pcall(onChange, state)
             if not ok then
                 warn("Toggle callback error:", err)
@@ -1149,10 +1149,10 @@ end
 keepPersistent(UIS.InputBegan:Connect(function(input, gp)
     if gp then return end
     if UIS:GetFocusedTextBox() then return end
-    if input.KeyCode == Enum.KeyCode.F1 and ToggleCallbacks.ESP then ToggleCallbacks.ESP(not FEATURE.ESP)
-    elseif input.KeyCode == Enum.KeyCode.F2 and ToggleCallbacks.AutoE then ToggleCallbacks.AutoE(not FEATURE.AutoE)
-    elseif input.KeyCode == Enum.KeyCode.F3 and ToggleCallbacks.WalkEnabled then ToggleCallbacks.WalkEnabled(not FEATURE.WalkEnabled)
-    elseif input.KeyCode == Enum.KeyCode.F4 and ToggleCallbacks.Aimbot then ToggleCallbacks.Aimbot(not FEATURE.Aimbot) end
+    if input.KeyCode == Enum.KeyCode.F1 and ToggleCallbacks.ESP and type(ToggleCallbacks.ESP) == "function" then ToggleCallbacks.ESP(not FEATURE.ESP)
+    elseif input.KeyCode == Enum.KeyCode.F2 and ToggleCallbacks.AutoE and type(ToggleCallbacks.AutoE) == "function" then ToggleCallbacks.AutoE(not FEATURE.AutoE)
+    elseif input.KeyCode == Enum.KeyCode.F3 and ToggleCallbacks.WalkEnabled and type(ToggleCallbacks.WalkEnabled) == "function" then ToggleCallbacks.WalkEnabled(not FEATURE.WalkEnabled)
+    elseif input.KeyCode == Enum.KeyCode.F4 and ToggleCallbacks.Aimbot and type(ToggleCallbacks.Aimbot) == "function" then ToggleCallbacks.Aimbot(not FEATURE.Aimbot) end
 end))
 
 keepPersistent(LocalPlayer.CharacterRemoving:Connect(function(char)
