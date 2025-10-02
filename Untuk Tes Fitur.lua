@@ -526,9 +526,26 @@ end
 
 keepPersistent(UIS.InputBegan:Connect(function(input, gp)
     if gp then return end
+    
     if input.KeyCode == Enum.KeyCode.LeftAlt then
         MainFrame.Visible = not MainFrame.Visible
         HUD.Visible = not MainFrame.Visible
+    end
+    
+    if input.KeyCode == Enum.KeyCode.F1 then
+        if ToggleCallbacks and ToggleCallbacks.ESP then ToggleCallbacks.ESP(not FEATURE.ESP) end
+    end
+    
+    if input.KeyCode == Enum.KeyCode.F2 then
+        if ToggleCallbacks and ToggleCallbacks.AutoE then ToggleCallbacks.AutoE(not FEATURE.AutoE) end
+    end
+    
+    if input.KeyCode == Enum.KeyCode.F3 then
+        if ToggleCallbacks and ToggleCallbacks.WalkEnabled then ToggleCallbacks.WalkEnabled(not FEATURE.WalkEnabled) end
+    end
+    
+    if input.KeyCode == Enum.KeyCode.F4 then
+        if ToggleCallbacks and ToggleCallbacks.Aimbot then ToggleCallbacks.Aimbot(not FEATURE.Aimbot) end
     end
 end))
 
@@ -857,33 +874,50 @@ keepPersistent(RunService.RenderStepped:Connect(function()
     end
 end))
 
+
+local function isFirstPerson()
+    safeWaitCamera()
+    if not Camera then return false end
+    
+    
+    local char = LocalPlayer.Character
+    local head = char and (char:FindFirstChild("Head") or char:FindFirstChild("UpperTorso") or char:FindFirstChild("HumanoidRootPart"))
+    if head and Camera then
+        local dist = (Camera.CFrame.Position - head.Position).Magnitude
+        return dist < 2.2 
+    end
+    return false
+end
+
 keepPersistent(RunService.RenderStepped:Connect(function()
     if not FEATURE.Aimbot then return end
     if FEATURE.AIM_HOLD and not UIS:IsMouseButtonPressed(Enum.UserInputType.MouseButton2) then return end
     if UIS:GetFocusedTextBox() then return end
     safeWaitCamera()
     if not Camera or not Camera.CFrame then return end
-    local bestHead = nil
-    local bestAngle = 1e9
-    for _, p in ipairs(Players:GetPlayers()) do
-        if p ~= LocalPlayer then
-            local okTarget = false
-            if p.Team and LocalPlayer.Team then okTarget = (p.Team ~= LocalPlayer.Team) else okTarget = true end
-            if okTarget and p.Character then
-                local hum = p.Character:FindFirstChildOfClass("Humanoid")
-                if not hum or hum.Health <= 0 then
-                    
-                else
-                    local head = p.Character:FindFirstChild("Head") or p.Character:FindFirstChild("UpperTorso") or p.Character:FindFirstChild("HumanoidRootPart")
-                    if head then
-                        local aimPos = getPredictedPosition(head)
-                        if aimPos then
-                            local dir = aimPos - Camera.CFrame.Position
-                            if dir.Magnitude > 0.001 then
-                                local ang = angleBetweenVectors(Camera.CFrame.LookVector, dir.Unit)
-                                if ang < bestAngle and ang <= FEATURE.AIM_FOV_DEG then
-                                    bestHead = aimPos
-                                    bestAngle = ang
+
+    if isFirstPerson() then
+        
+        local bestHead = nil
+        local bestAngle = 1e9
+        for _, p in ipairs(Players:GetPlayers()) do
+            if p ~= LocalPlayer then
+                local okTarget = false
+                if p.Team and LocalPlayer.Team then okTarget = (p.Team ~= LocalPlayer.Team) else okTarget = true end
+                if okTarget and p.Character then
+                    local hum = p.Character:FindFirstChildOfClass("Humanoid")
+                    if hum and hum.Health > 0 then
+                        local head = p.Character:FindFirstChild("Head") or p.Character:FindFirstChild("UpperTorso") or p.Character:FindFirstChild("HumanoidRootPart")
+                        if head then
+                            local aimPos = getPredictedPosition(head)
+                            if aimPos then
+                                local dir = aimPos - Camera.CFrame.Position
+                                if dir.Magnitude > 0.001 then
+                                    local ang = angleBetweenVectors(Camera.CFrame.LookVector, dir.Unit)
+                                    if ang < bestAngle and ang <= FEATURE.AIM_FOV_DEG then
+                                        bestHead = aimPos
+                                        bestAngle = ang
+                                    end
                                 end
                             end
                         end
@@ -891,26 +925,27 @@ keepPersistent(RunService.RenderStepped:Connect(function()
                 end
             end
         end
-    end
 
-    if bestHead then
-        local success, err = pcall(function()
-            local dir = (bestHead - Camera.CFrame.Position)
-            if dir.Magnitude < 1e-4 then return end
-            dir = dir.Unit
-            local currentLook = Camera.CFrame.LookVector
-            local lerpVal = clamp(FEATURE.AIM_LERP, 0.01, 0.95)
-            local blended = currentLook:Lerp(dir, lerpVal)
-            local pos = Camera.CFrame.Position
-            local targetCFrame = CFrame.new(pos, pos + blended)
-            Camera.CFrame = Camera.CFrame:Lerp(targetCFrame, lerpVal)
-        end)
-        if not success then
-            warn("Aimbot camera write error:", err)
-            FEATURE.Aimbot = false
-            updateHUD("Aimbot", false)
+        if bestHead then
+            local success, err = pcall(function()
+                local dir = (bestHead - Camera.CFrame.Position)
+                if dir.Magnitude < 1e-4 then return end
+                dir = dir.Unit
+                local currentLook = Camera.CFrame.LookVector
+                local lerpVal = clamp(FEATURE.AIM_LERP, 0.01, 0.95)
+                local blended = currentLook:Lerp(dir, lerpVal)
+                local pos = Camera.CFrame.Position
+                local targetCFrame = CFrame.new(pos, pos + blended)
+                Camera.CFrame = Camera.CFrame:Lerp(targetCFrame, lerpVal)
+            end)
+            if not success then
+                warn("Aimbot camera write error:", err)
+                FEATURE.Aimbot = false
+                updateHUD("Aimbot", false)
+            end
         end
     end
+    
 end))
 
 local teleportContainer = Instance.new("ScrollingFrame", Content)
