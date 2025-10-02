@@ -1005,7 +1005,7 @@ end
 -- Teleport Fix Logic
 local lastSafezoneEntry = 0
 local SAFEZONE_RADIUS = 12
-local SAFEZONE_FIX_WINDOW = 0.05
+local SAFEZONE_FIX_WINDOW = 0.3
 local function getCurrentTeamSafezone()
     local team = LocalPlayer.Team and LocalPlayer.Team.Name
     if team and TELEPORT_COORDS[team] and TELEPORT_COORDS[team].Safezone then
@@ -1274,4 +1274,5 @@ keepPersistent(UIS.InputBegan:Connect(function(input, gp)
         end)
     end
 end))
+
 
