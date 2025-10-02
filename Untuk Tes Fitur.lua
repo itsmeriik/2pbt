@@ -524,25 +524,7 @@ local function updateHUD(name, state)
     end
 end
 
-keepPersistent(UIS.InputBegan:Connect(function(input, gp)
-    if gp then return end
-    if input.KeyCode == Enum.KeyCode.LeftAlt then
-        MainFrame.Visible = not MainFrame.Visible
-        HUD.Visible = not MainFrame.Visible
-    end
-    if input.KeyCode == Enum.KeyCode.F1 then
-        if ToggleCallbacks and ToggleCallbacks.ESP then ToggleCallbacks.ESP(not FEATURE.ESP) end
-    end
-    if input.KeyCode == Enum.KeyCode.F2 then
-        if ToggleCallbacks and ToggleCallbacks.AutoE then ToggleCallbacks.AutoE(not FEATURE.AutoE) end
-    end
-    if input.KeyCode == Enum.KeyCode.F3 then
-        if ToggleCallbacks and ToggleCallbacks.WalkEnabled then ToggleCallbacks.WalkEnabled(not FEATURE.WalkEnabled) end
-    end
-    if input.KeyCode == Enum.KeyCode.F4 then
-        if ToggleCallbacks and ToggleCallbacks.Aimbot then ToggleCallbacks.Aimbot(not FEATURE.Aimbot) end
-    end
-end))
+
 
 local function createSeparator(parent, text)
     local lab = Instance.new("TextLabel", parent)
@@ -1211,6 +1193,7 @@ registerToggle("WalkSpeed", "WalkEnabled", function(state)
     end
 end)
 
+
 for k,_ in pairs(FEATURE) do
     local display = nil
     if k == "ESP" then display = "ESP" end
@@ -1220,3 +1203,24 @@ for k,_ in pairs(FEATURE) do
     if k == "PredictiveAim" then display = "PredictiveAim" end
     if display then updateHUD(display, FEATURE[k]) end
 end
+
+-- Hotkey handler dipindah ke bawah agar ToggleCallbacks sudah terisi
+keepPersistent(UIS.InputBegan:Connect(function(input, gp)
+    if gp then return end
+    if input.KeyCode == Enum.KeyCode.LeftAlt then
+        MainFrame.Visible = not MainFrame.Visible
+        HUD.Visible = not MainFrame.Visible
+    end
+    if input.KeyCode == Enum.KeyCode.F1 then
+        if ToggleCallbacks and ToggleCallbacks.ESP then ToggleCallbacks.ESP(not FEATURE.ESP) end
+    end
+    if input.KeyCode == Enum.KeyCode.F2 then
+        if ToggleCallbacks and ToggleCallbacks.AutoE then ToggleCallbacks.AutoE(not FEATURE.AutoE) end
+    end
+    if input.KeyCode == Enum.KeyCode.F3 then
+        if ToggleCallbacks and ToggleCallbacks.WalkEnabled then ToggleCallbacks.WalkEnabled(not FEATURE.WalkEnabled) end
+    end
+    if input.KeyCode == Enum.KeyCode.F4 then
+        if ToggleCallbacks and ToggleCallbacks.Aimbot then ToggleCallbacks.Aimbot(not FEATURE.Aimbot) end
+    end
+end))
