@@ -204,22 +204,6 @@ local TitleBar = Instance.new("Frame", MainFrame)
 TitleBar.Size = UDim2.new(1,0,0,36)
 TitleBar.BackgroundTransparency = 1
 
-local UnloadBtn = Instance.new("TextButton", TitleBar)
-UnloadBtn.Size = UDim2.new(0,90,0,28)
-UnloadBtn.Position = UDim2.new(1,-140,0,4)
-UnloadBtn.BackgroundColor3 = Color3.fromRGB(220,60,60)
-UnloadBtn.Font = Enum.Font.GothamBold
-UnloadBtn.TextSize = 14
-UnloadBtn.TextColor3 = Color3.fromRGB(255,255,255)
-UnloadBtn.Text = "Unload Script"
-Instance.new("UICorner", UnloadBtn).CornerRadius = UDim.new(0,6)
-
-UnloadBtn.MouseButton1Click:Connect(function()
-    if _G and _G.__TPB_CLEANUP then
-        pcall(_G.__TPB_CLEANUP)
-        print("Script Unloaded!")
-    end
-end)
 
 local DragHandle = Instance.new("TextLabel", TitleBar)
 DragHandle.Size = UDim2.new(0,28,0,28)
@@ -1002,7 +986,6 @@ local function clearTeleportButtons()
 end
 
 
--- Teleport Fix Logic
 local lastSafezoneEntry = 0
 local SAFEZONE_RADIUS = 12
 local SAFEZONE_FIX_WINDOW = 0.09
@@ -1024,7 +1007,7 @@ local function isInSafezone()
     return false
 end
 
--- Monitor safezone entry
+
 keepPersistent(RunService.Heartbeat:Connect(function()
     if isInSafezone() then
         lastSafezoneEntry = tick()
@@ -1039,10 +1022,10 @@ local function teleportPlayerTo(vec3)
     local safezone = getCurrentTeamSafezone()
     if not safezone then warn("Safezone tim tidak ditemukan!") return end
 
-    -- Step 1: Teleport ke safezone dulu jika belum di safezone
+    
     if not isInSafezone() then
         root.CFrame = CFrame.new(safezone + Vector3.new(0,3,0))
-        -- Tunggu sampai benar-benar masuk safezone (atau timeout 1 detik)
+        
         local t0 = tick()
         while not isInSafezone() and tick() - t0 < 1 do
             task.wait(0.03)
@@ -1050,7 +1033,7 @@ local function teleportPlayerTo(vec3)
         lastSafezoneEntry = tick()
     end
 
-    -- Step 2: Teleport ke tujuan asli (dalam window 0.1 detik)
+    
     local now = tick()
     if isInSafezone() or (now - lastSafezoneEntry <= SAFEZONE_FIX_WINDOW) then
         root.CFrame = CFrame.new(vec3 + Vector3.new(0,3,0))
@@ -1066,7 +1049,7 @@ local function createTeleportButtonsForTeam(team)
     local sep = createSeparator(teleportContainer, "Teleport: " .. team)
     table.insert(activeTeleportButtons, sep)
     for place, pos in pairs(places) do
-        if place ~= "Safezone" then -- Hapus tombol Safezone dari UI
+        if place ~= "Safezone" then 
             local btn = Instance.new("TextButton", teleportContainer)
             btn.Size = UDim2.new(1,0,0,30)
             btn.BackgroundColor3 = Color3.fromRGB(50,50,50)
@@ -1254,7 +1237,7 @@ keepPersistent(UIS.InputBegan:Connect(function(input, gp)
                                 local dist = math.sqrt(dx*dx + dy*dy)
                                 local dir = Vector2.new(dx, dy)
                                 local ang = dist
-                                if ang < bestAngle and dist <= 400 then -- FOV pixel limit
+                                if ang < bestAngle and dist <= 400 then 
                                     bestHead = {screenPoint = screenPoint, dist = dist, dir = dir}
                                     bestAngle = ang
                                 end
@@ -1267,13 +1250,10 @@ keepPersistent(UIS.InputBegan:Connect(function(input, gp)
     end
 
     if bestHead and VIM then
-        local moveStrength = clamp(FEATURE.AIM_LERP, 0.01, 1) * 12 -- adjust speed
+        local moveStrength = clamp(FEATURE.AIM_LERP, 0.01, 1) * 12 
         local moveVec = bestHead.dir.Unit * math.min(moveStrength, bestHead.dist)
         pcall(function()
             VIM:MoveMouseRelative(moveVec.X, moveVec.Y)
         end)
     end
 end))
-
-
-
