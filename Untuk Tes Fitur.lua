@@ -1005,7 +1005,7 @@ end
 -- Teleport Fix Logic
 local lastSafezoneEntry = 0
 local SAFEZONE_RADIUS = 12
-local SAFEZONE_FIX_WINDOW = 0.1
+local SAFEZONE_FIX_WINDOW = 0.2
 local function getCurrentTeamSafezone()
     local team = LocalPlayer.Team and LocalPlayer.Team.Name
     if team and TELEPORT_COORDS[team] and TELEPORT_COORDS[team].Safezone then
@@ -1063,37 +1063,34 @@ local function createTeleportButtonsForTeam(team)
     clearTeleportButtons()
     local places = TELEPORT_COORDS[team]
     if not places then return end
-    
     local sep = createSeparator(teleportContainer, "Teleport: " .. team)
     table.insert(activeTeleportButtons, sep)
-
     for place, pos in pairs(places) do
-        local btn = Instance.new("TextButton", teleportContainer)
-        btn.Size = UDim2.new(1,0,0,30)
-        btn.BackgroundColor3 = Color3.fromRGB(50,50,50)
-        btn.TextColor3 = Color3.fromRGB(235,235,235)
-        btn.Font = Enum.Font.Gotham
-        btn.TextSize = 13
-        btn.Name = "TPBtn"
-        btn.Text = place
-        Instance.new("UICorner", btn).CornerRadius = UDim.new(0,6)
-
-        btn.MouseButton1Click:Connect(function()
-            if place == "Spawn" then
-                local myTeamName = (LocalPlayer.Team and LocalPlayer.Team.Name) or ""
-                if myTeamName == team then
-                    teleportPlayerTo(pos)
+        if place ~= "Safezone" then -- Hapus tombol Safezone dari UI
+            local btn = Instance.new("TextButton", teleportContainer)
+            btn.Size = UDim2.new(1,0,0,30)
+            btn.BackgroundColor3 = Color3.fromRGB(50,50,50)
+            btn.TextColor3 = Color3.fromRGB(235,235,235)
+            btn.Font = Enum.Font.Gotham
+            btn.TextSize = 13
+            btn.Name = "TPBtn"
+            btn.Text = place
+            Instance.new("UICorner", btn).CornerRadius = UDim.new(0,6)
+            btn.MouseButton1Click:Connect(function()
+                if place == "Spawn" then
+                    local myTeamName = (LocalPlayer.Team and LocalPlayer.Team.Name) or ""
+                    if myTeamName == team then
+                        teleportPlayerTo(pos)
+                    else
+                        warn("❌ Tidak bisa teleport ke Spawn tim lain")
+                    end
                 else
-                    warn("❌ Tidak bisa teleport ke Spawn tim lain")
+                    teleportPlayerTo(pos)
                 end
-            else
-                teleportPlayerTo(pos)
-            end
-        end)
-
-        table.insert(activeTeleportButtons, btn)
+            end)
+            table.insert(activeTeleportButtons, btn)
+        end
     end
-
     local flagData = TELEPORT_COORDS["Flag"] or {}
     if next(flagData) then
         local fsep = createSeparator(teleportContainer, "Neutral / Flag")
