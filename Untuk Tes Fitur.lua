@@ -332,16 +332,7 @@ autoTPDropdown.MouseButton1Click:Connect(function()
     autoTPListFrame.Visible = not autoTPListFrame.Visible
 end)
 
-UIS.InputBegan:Connect(function(input, gp)
-    if autoTPListFrame.Visible and input.UserInputType == Enum.UserInputType.MouseButton1 then
-        local mousePos = UIS:GetMouseLocation()
-        local absPos = autoTPListFrame.AbsolutePosition
-        local absSize = autoTPListFrame.AbsoluteSize
-        if not (mousePos.X >= absPos.X and mousePos.X <= absPos.X+absSize.X and mousePos.Y >= absPos.Y and mousePos.Y <= absPos.Y+absSize.Y) then
-            autoTPListFrame.Visible = false
-        end
-    end
-end)
+
 
 local autoTPToggleBtn = Instance.new("TextButton", autoTPFrame)
 autoTPToggleBtn.Size = UDim2.new(0.18,0,1,0)
