@@ -564,17 +564,22 @@ local function registerToggle(displayName, featureKey, onChange)
     Instance.new("UICorner", btn).CornerRadius = UDim.new(0,6)
     btn.Parent = Content
     local function setState(state)
-        local old = FEATURE[featureKey]
-        FEATURE[featureKey] = state
-        btn.Text = displayName .. " [" .. (state and "ON" or "OFF") .. "]"
-        btn.BackgroundColor3 = state and Color3.fromRGB(80,150,220) or Color3.fromRGB(36,36,36)
-        updateHUD(displayName, state)
-        if onChange and type(onChange) == "function" then
-            local ok, err = pcall(onChange, state)
-            if not ok then
-                warn("Toggle callback error:", err)
-                FEATURE[featureKey] = old
+        local ok, err = pcall(function()
+            local old = FEATURE[featureKey]
+            FEATURE[featureKey] = state
+            btn.Text = displayName .. " [" .. (state and "ON" or "OFF") .. "]"
+            btn.BackgroundColor3 = state and Color3.fromRGB(80,150,220) or Color3.fromRGB(36,36,36)
+            updateHUD(displayName, state)
+            if onChange and type(onChange) == "function" then
+                local ok2, err2 = pcall(onChange, state)
+                if not ok2 then
+                    warn("Toggle callback error:", err2)
+                    FEATURE[featureKey] = old
+                end
             end
+        end)
+        if not ok then
+            warn("Toggle UI error:", err)
         end
     end
     btn.MouseButton1Click:Connect(function() setState(not FEATURE[featureKey]) end)
