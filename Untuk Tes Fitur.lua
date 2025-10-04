@@ -30,7 +30,6 @@ local FEATURE = {
     ProjectileSpeed = 50,
     PredictionLimit = 0.5,
     InfiniteJump = false,
-    Noclip = false,
 }
 
 local WALK_UPDATE_INTERVAL = 0.12
@@ -253,8 +252,6 @@ Content.Size = UDim2.new(1,-16,1,-56)
 Content.Position = UDim2.new(0,8,0,44)
 Content.BackgroundTransparency = 1
 
-
--- === AutoTP Section (as Frame at top) ===
 local autoTPFrame = Instance.new("Frame", Content)
 autoTPFrame.Size = UDim2.new(1,0,0,40)
 autoTPFrame.BackgroundTransparency = 1
@@ -478,26 +475,25 @@ local HUDGui = Instance.new("ScreenGui")
 HUDGui.Name = "TPB_TycoonHUD_Final"
 HUDGui.DisplayOrder = 10000
 safeParentGui(HUDGui)
-hudAdd("PredictiveAim")
 local HUD = Instance.new("Frame", HUDGui)
-HUD.Size = UDim2.new(0,240,0,180)
-HUD.Position = UDim2.new(1,-260,1,-200)
+HUD.Size = UDim2.new(0,220,0,120)
+HUD.Position = UDim2.new(1,-240,1,-150)
 HUD.BackgroundColor3 = Color3.fromRGB(20,20,20)
 HUD.BackgroundTransparency = 0.06
 HUD.BorderSizePixel = 0
 HUD.Visible = false
 Instance.new("UICorner", HUD).CornerRadius = UDim.new(0,8)
 local HUDList = Instance.new("UIListLayout", HUD)
-HUDList.Padding = UDim.new(0,2)
+HUDList.Padding = UDim.new(0,4)
 HUDList.SortOrder = Enum.SortOrder.LayoutOrder
 local hudLabels = {}
 local function hudAdd(name)
     local l = Instance.new("TextLabel", HUD)
-    l.Size = UDim2.new(1,-12,0,15)
+    l.Size = UDim2.new(1,-12,0,18)
     l.Position = UDim2.new(0,8,0,0)
     l.BackgroundTransparency = 1
     l.Font = Enum.Font.Gotham
-    l.TextSize = 12
+    l.TextSize = 13
     l.TextColor3 = Color3.fromRGB(220,220,220)
     l.TextXAlignment = Enum.TextXAlignment.Left
     l.Text = name .. ": OFF"
@@ -508,76 +504,32 @@ hudAdd("ESP")
 hudAdd("Auto Press E")
 hudAdd("WalkSpeed")
 hudAdd("Aimbot")
+
 hudAdd("PredictiveAim")
 hudAdd("Infinite Jump")
-hudAdd("Noclip")
--- Noclip logic
-local noclipConns = {}
-local function setNoclipState(state)
-    if state then
-        local function onTouched(part)
-            if not part:IsA("BasePart") then return end
-            if not part.Anchored then return end
-            if not part.CanCollide then return end
-            local char = LocalPlayer.Character
-            if not char then return end
-            local hrp = char:FindFirstChild("HumanoidRootPart")
-            if not hrp then return end
-            if part.Position.Y < (hrp.Position.Y - hrp.Size.Y) then return end
-            part.CanCollide = false
-        end
-        local function setup()
-            local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-            local hrp = char:WaitForChild("HumanoidRootPart")
-            table.insert(noclipConns, hrp.Touched:Connect(onTouched))
-        end
-        if LocalPlayer.Character then setup() end
-        table.insert(noclipConns, LocalPlayer.CharacterAdded:Connect(setup))
-    else
-        for _,c in ipairs(noclipConns) do pcall(function() c:Disconnect() end) end
-        noclipConns = {}
-    end
-end
 -- Infinite Jump logic
-local infiniteJumpThread = nil
-local infiniteJumping = false
-local function infiniteJumpLoop()
-    while infiniteJumping and FEATURE.InfiniteJump do
-        local char = LocalPlayer.Character
-        if char then
-            local hum = char:FindFirstChildOfClass("Humanoid")
-            if hum then
-                hum:ChangeState(Enum.HumanoidStateType.Jumping)
-            end
-        end
-        task.wait(0.05)
-    end
-end
-
-local inputBeganConn, inputEndedConn = nil, nil
+local infiniteJumpConn = nil
 local function enableInfiniteJump()
-    if inputBeganConn or inputEndedConn then return end
-    inputBeganConn = UIS.InputBegan:Connect(function(input, gp)
-        if gp then return end
-        if input.KeyCode == Enum.KeyCode.Space and FEATURE.InfiniteJump then
-            if not infiniteJumping then
-                infiniteJumping = true
-                infiniteJumpThread = task.spawn(infiniteJumpLoop)
+    if infiniteJumpConn then return end
+    local function onJumpRequest()
+        if FEATURE.InfiniteJump then
+            local char = LocalPlayer.Character
+            if char then
+                local hum = char:FindFirstChildOfClass("Humanoid")
+                if hum then
+                    hum:ChangeState(Enum.HumanoidStateType.Jumping)
+                end
             end
         end
-    end)
-    inputEndedConn = UIS.InputEnded:Connect(function(input, gp)
-        if gp then return end
-        if input.KeyCode == Enum.KeyCode.Space then
-            infiniteJumping = false
-        end
-    end)
+    end
+    infiniteJumpConn = UIS.JumpRequest:Connect(onJumpRequest)
 end
 
 local function disableInfiniteJump()
-    infiniteJumping = false
-    if inputBeganConn then pcall(function() inputBeganConn:Disconnect() end) inputBeganConn = nil end
-    if inputEndedConn then pcall(function() inputEndedConn:Disconnect() end) inputEndedConn = nil end
+    if infiniteJumpConn then
+        pcall(function() infiniteJumpConn:Disconnect() end)
+        infiniteJumpConn = nil
+    end
 end
 
 local function updateHUD(name, state)
@@ -1255,10 +1207,6 @@ registerToggle("Infinite Jump", "InfiniteJump", function(state)
     if state then enableInfiniteJump() else disableInfiniteJump() end
     updateHUD("Infinite Jump", state)
 end)
-registerToggle("Noclip", "Noclip", function(state)
-    setNoclipState(state)
-    updateHUD("Noclip", state)
-end)
 
 for k,_ in pairs(FEATURE) do
     local display = nil
@@ -1267,10 +1215,8 @@ for k,_ in pairs(FEATURE) do
     if k == "WalkEnabled" then display = "WalkSpeed" end
     if k == "Aimbot" then display = "Aimbot" end
     if k == "PredictiveAim" then display = "PredictiveAim" end
-
     if display then updateHUD(display, FEATURE[k]) end
 end
-updateHUD("Noclip", FEATURE.Noclip)
 
 keepPersistent(UIS.InputBegan:Connect(function(input, gp)
     if gp then return end
@@ -1292,8 +1238,5 @@ keepPersistent(UIS.InputBegan:Connect(function(input, gp)
     end
     if input.KeyCode == Enum.KeyCode.J then
         if ToggleCallbacks and ToggleCallbacks.InfiniteJump then ToggleCallbacks.InfiniteJump(not FEATURE.InfiniteJump) end
-    end
-    if input.KeyCode == Enum.KeyCode.N then
-        if ToggleCallbacks and ToggleCallbacks.Noclip then ToggleCallbacks.Noclip(not FEATURE.Noclip) end
     end
 end))
