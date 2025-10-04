@@ -711,6 +711,7 @@ end)
 registerToggle("Auto Press E", "AutoE", function(state)
     if state then startAutoE() else stopAutoE() end
 end)
+
 registerToggle("WalkSpeed", "WalkEnabled", function(state)
     if state then
         pcall(function()
@@ -722,6 +723,15 @@ registerToggle("WalkSpeed", "WalkEnabled", function(state)
     else
         restoreWalkSpeedForCharacter(LocalPlayer.Character)
     end
+end)
+
+registerToggle("InfiniteJump", "InfiniteJump", function(state)
+    if state then enableInfiniteJump() else disableInfiniteJump() end
+    updateHUD("InfiniteJump", state)
+end)
+registerToggle("Noclip", "Noclip", function(state)
+    if state then enableNoclip() else disableNoclip() end
+    updateHUD("Noclip", state)
 end)
 registerToggle("InfiniteJump", "InfiniteJump", function(state)
     if state then enableInfiniteJump() else disableInfiniteJump() end
