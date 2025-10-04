@@ -1,4 +1,3 @@
--- 2PBTycoon (with Infinite Jump & Noclip)
 if not game:IsLoaded() then game.Loaded:Wait() end
 
 local Players = game:GetService("Players")
@@ -30,8 +29,6 @@ local FEATURE = {
     PredictiveAim = false,
     ProjectileSpeed = 50,
     PredictionLimit = 0.5,
-
-    -- new features
     InfiniteJump = false,
     Noclip = false,
 }
@@ -509,7 +506,6 @@ hudAdd("Auto Press E")
 hudAdd("WalkSpeed")
 hudAdd("Aimbot")
 hudAdd("PredictiveAim")
--- new HUD entries
 hudAdd("InfiniteJump")
 hudAdd("NoClip")
 
@@ -532,10 +528,27 @@ local function createSeparator(parent, text)
     return lab
 end
 
+local togglesScroll = Instance.new("ScrollingFrame", Content)
+togglesScroll.Name = "TogglesScroll"
+togglesScroll.Size = UDim2.new(1,0,0,180)
+togglesScroll.Position = UDim2.new(0,0,0,0)
+togglesScroll.BackgroundTransparency = 1
+togglesScroll.ScrollBarThickness = 6
+togglesScroll.VerticalScrollBarInset = Enum.ScrollBarInset.Always
+togglesScroll.CanvasSize = UDim2.new(0,0,0,0)
+
+local togglesListLayout = Instance.new("UIListLayout", togglesScroll)
+togglesListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+togglesListLayout.Padding = UDim.new(0,8)
+
+togglesListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+    togglesScroll.CanvasSize = UDim2.new(0,0,0, togglesListLayout.AbsoluteContentSize.Y + 8)
+end)
+
 local ToggleCallbacks = {}
 local Buttons = {}
 local function registerToggle(displayName, featureKey, onChange)
-    local btn = Instance.new("TextButton", Content)
+    local btn = Instance.new("TextButton", togglesScroll)
     btn.Size = UDim2.new(1,0,0,32)
     btn.BackgroundColor3 = Color3.fromRGB(36,36,36)
     btn.TextColor3 = Color3.fromRGB(235,235,235)
@@ -543,7 +556,7 @@ local function registerToggle(displayName, featureKey, onChange)
     btn.TextSize = 14
     btn.Text = displayName .. " [OFF]"
     Instance.new("UICorner", btn).CornerRadius = UDim.new(0,6)
-    btn.Parent = Content
+    btn.Parent = togglesScroll
     local function setState(state)
         local old = FEATURE[featureKey]
         FEATURE[featureKey] = state
@@ -975,7 +988,7 @@ end
 
 local lastSafezoneEntry = 0
 local SAFEZONE_RADIUS = 12
-local SAFEZONE_FIX_WINDOW = 0.08
+local SAFEZONE_FIX_WINDOW = 0.09
 local function getCurrentTeamSafezone()
     local team = LocalPlayer.Team and LocalPlayer.Team.Name
     if team and TELEPORT_COORDS[team] and TELEPORT_COORDS[team].Safezone then
@@ -1184,9 +1197,6 @@ registerToggle("WalkSpeed", "WalkEnabled", function(state)
     end
 end)
 
--- === NEW: Infinite Jump & Noclip implementation ===
-
--- Helpers for character management
 local function getHumanoid(char)
     if not char then return nil end
     return char:FindFirstChildOfClass("Humanoid")
@@ -1215,7 +1225,7 @@ local function disableInfiniteJump()
     end
 end
 
--- NoClip
+
 local noclipConn = nil
 local function applyNoClipToCharacter(char)
     if not char then return end
@@ -1235,7 +1245,6 @@ local function restoreCollisionsForCharacter(char)
     end
 end
 
--- Keep noclip persistent with a Stepped connection (reapplies each frame while enabled)
 keepPersistent(RunService.Stepped:Connect(function()
     if FEATURE.Noclip then
         local char = LocalPlayer.Character
@@ -1245,11 +1254,10 @@ keepPersistent(RunService.Stepped:Connect(function()
     end
 end))
 
--- Reapply features on respawn/character add
 local function onCharacterAdded(char)
-    -- wait a bit for parts
+    
     task.wait(0.06)
-    -- Walk speed restoration setup if WalkEnabled is on
+    
     if FEATURE.WalkEnabled then
         pcall(function()
             local hum = getHumanoid(char)
@@ -1258,67 +1266,58 @@ local function onCharacterAdded(char)
         end)
     end
 
-    -- If infinite jump is enabled, ensure loop running
+    
     if FEATURE.InfiniteJump then
-        -- nothing to do besides ensuring loop runs; spaceHeld will control actual jumps
+
         startInfiniteJumpLoop()
     end
 
-    -- If noclip enabled, apply immediately (Stepped connection will keep applying)
+    
     if FEATURE.Noclip then
         applyNoClipToCharacter(char)
     else
-        -- ensure collisions reset for new character if noclip was off
+        
         restoreCollisionsForCharacter(char)
     end
 end
 
--- Connect CharacterAdded persistently
+
 keepPersistent(LocalPlayer.CharacterAdded:Connect(function(char)
     onCharacterAdded(char)
 
-    -- Ensure when character dies or is removed, we cleanup necessary state (but keep toggles persistent)
+    
     char:WaitForChild("Humanoid", 10)
     local hum = getHumanoid(char)
     if hum then
         hum.Died:Connect(function()
-            -- on death do nothing to toggles (persistent), but reset spaceHeld to avoid stuck
+            
             spaceHeld = false
         end)
     end
 end))
 
--- Ensure immediate attach if character already exists
 if LocalPlayer.Character then
     onCharacterAdded(LocalPlayer.Character)
 end
-
 
 keepPersistent(UIS.InputBegan:Connect(function(input, gp)
     if gp then return end
     if input.KeyCode == Enum.KeyCode.LeftAlt then
         MainFrame.Visible = not MainFrame.Visible
         HUD.Visible = not MainFrame.Visible
-    end
-    if input.KeyCode == Enum.KeyCode.F1 then
+    elseif input.KeyCode == Enum.KeyCode.F1 then
         if ToggleCallbacks and ToggleCallbacks.ESP then ToggleCallbacks.ESP(not FEATURE.ESP) end
-    end
-    if input.KeyCode == Enum.KeyCode.F2 then
+    elseif input.KeyCode == Enum.KeyCode.F2 then
         if ToggleCallbacks and ToggleCallbacks.AutoE then ToggleCallbacks.AutoE(not FEATURE.AutoE) end
-    end
-    if input.KeyCode == Enum.KeyCode.F3 then
+    elseif input.KeyCode == Enum.KeyCode.F3 then
         if ToggleCallbacks and ToggleCallbacks.WalkEnabled then ToggleCallbacks.WalkEnabled(not FEATURE.WalkEnabled) end
-    end
-    if input.KeyCode == Enum.KeyCode.F4 then
+    elseif input.KeyCode == Enum.KeyCode.F4 then
         if ToggleCallbacks and ToggleCallbacks.Aimbot then ToggleCallbacks.Aimbot(not FEATURE.Aimbot) end
-    end
-    if input.KeyCode == Enum.KeyCode.I then
+    elseif input.KeyCode == Enum.KeyCode.J then
         if ToggleCallbacks and ToggleCallbacks.InfiniteJump then ToggleCallbacks.InfiniteJump(not FEATURE.InfiniteJump) end
-    end
-    if input.KeyCode == Enum.KeyCode.N then
+    elseif input.KeyCode == Enum.KeyCode.N then
         if ToggleCallbacks and ToggleCallbacks.Noclip then ToggleCallbacks.Noclip(not FEATURE.Noclip) end
-    end
-    if input.KeyCode == Enum.KeyCode.Space then
+    elseif input.KeyCode == Enum.KeyCode.Space then
         spaceHeld = true
     end
 end))
@@ -1328,7 +1327,6 @@ keepPersistent(UIS.InputEnded:Connect(function(input, gp)
         spaceHeld = false
     end
 end))
-
 
 registerToggle("InfiniteJump", "InfiniteJump", function(state)
     updateHUD("InfiniteJump", state)
@@ -1342,17 +1340,16 @@ end)
 registerToggle("NoClip", "Noclip", function(state)
     updateHUD("NoClip", state)
     if state then
-        -- apply immediately to current character; Stepped connection will maintain it
+        
         local char = LocalPlayer.Character
         if char then applyNoClipToCharacter(char) end
     else
-        -- restore collisions for current char
+        
         local char = LocalPlayer.Character
         if char then restoreCollisionsForCharacter(char) end
     end
 end)
 
--- Initialize HUD states for all features present in FEATURE
 for k,_ in pairs(FEATURE) do
     local display = nil
     if k == "ESP" then display = "ESP" end
@@ -1364,33 +1361,3 @@ for k,_ in pairs(FEATURE) do
     if k == "Noclip" or k == "Noclip" then display = "NoClip" end
     if display then updateHUD(display, FEATURE[k]) end
 end
-
--- Keep original InputBegan for AutoTP T hotkey (already connected earlier) - no change
--- End of script
-
-
-keepPersistent(UIS.InputBegan:Connect(function(input, gp)
-    if gp then return end
-    if input.KeyCode == Enum.KeyCode.LeftAlt then
-        MainFrame.Visible = not MainFrame.Visible
-        HUD.Visible = not MainFrame.Visible
-    end
-    if input.KeyCode == Enum.KeyCode.F1 then
-        if ToggleCallbacks and ToggleCallbacks.ESP then ToggleCallbacks.ESP(not FEATURE.ESP) end
-    end
-    if input.KeyCode == Enum.KeyCode.F2 then
-        if ToggleCallbacks and ToggleCallbacks.AutoE then ToggleCallbacks.AutoE(not FEATURE.AutoE) end
-    end
-    if input.KeyCode == Enum.KeyCode.F3 then
-        if ToggleCallbacks and ToggleCallbacks.WalkEnabled then ToggleCallbacks.WalkEnabled(not FEATURE.WalkEnabled) end
-    end
-    if input.KeyCode == Enum.KeyCode.F4 then
-        if ToggleCallbacks and ToggleCallbacks.Aimbot then ToggleCallbacks.Aimbot(not FEATURE.Aimbot) end
-    end
-    if input.KeyCode == Enum.KeyCode.I then
-        if ToggleCallbacks and ToggleCallbacks.InfiniteJump then ToggleCallbacks.InfiniteJump(not FEATURE.InfiniteJump) end
-    end
-    if input.KeyCode == Enum.KeyCode.N then
-        if ToggleCallbacks and ToggleCallbacks.Noclip then ToggleCallbacks.Noclip(not FEATURE.Noclip) end
-    end
-end))
