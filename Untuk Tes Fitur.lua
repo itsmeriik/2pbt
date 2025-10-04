@@ -1192,30 +1192,27 @@ local function getHumanoid(char)
     return char:FindFirstChildOfClass("Humanoid")
 end
 
--- Infinite Jump (hold space)
+
 local spaceHeld = false
-local infiniteJumpLoop = nil
-local function startInfiniteJumpLoop()
-    if infiniteJumpLoop then return end
-    infiniteJumpLoop = task.spawn(function()
-        while FEATURE.InfiniteJump do
-            if spaceHeld then
-                local char = LocalPlayer.Character
-                local hum = getHumanoid(char)
-                if hum and hum.Health > 0 then
-                    -- Try to make the player jump. setting Jump = true repeatedly while holding space.
-                    pcall(function() hum.Jump = true end)
-                end
+local infiniteJumpConn = nil
+local function enableInfiniteJump()
+    if infiniteJumpConn then return end
+    infiniteJumpConn = RunService.RenderStepped:Connect(function()
+        if FEATURE.InfiniteJump and spaceHeld then
+            local char = LocalPlayer.Character
+            local hum = getHumanoid(char)
+            if hum and hum.Health > 0 and hum:GetState() ~= Enum.HumanoidStateType.Seated then
+                hum:ChangeState(Enum.HumanoidStateType.Jumping)
             end
-            task.wait(0.06)
         end
-        infiniteJumpLoop = nil
     end)
 end
 
-local function stopInfiniteJumpLoop()
-    spaceHeld = false
-    infiniteJumpLoop = nil
+local function disableInfiniteJump()
+    if infiniteJumpConn then
+        pcall(function() infiniteJumpConn:Disconnect() end)
+        infiniteJumpConn = nil
+    end
 end
 
 -- NoClip
@@ -1296,10 +1293,9 @@ if LocalPlayer.Character then
     onCharacterAdded(LocalPlayer.Character)
 end
 
--- Input handling for holding space and hotkeys I/N
+
 keepPersistent(UIS.InputBegan:Connect(function(input, gp)
     if gp then return end
-    -- existing toggles: LeftAlt, F1-F4
     if input.KeyCode == Enum.KeyCode.LeftAlt then
         MainFrame.Visible = not MainFrame.Visible
         HUD.Visible = not MainFrame.Visible
@@ -1316,34 +1312,16 @@ keepPersistent(UIS.InputBegan:Connect(function(input, gp)
     if input.KeyCode == Enum.KeyCode.F4 then
         if ToggleCallbacks and ToggleCallbacks.Aimbot then ToggleCallbacks.Aimbot(not FEATURE.Aimbot) end
     end
-
-    -- NEW: toggle InfiniteJump with I
     if input.KeyCode == Enum.KeyCode.I then
-        if ToggleCallbacks and ToggleCallbacks.InfiniteJump then
-            ToggleCallbacks.InfiniteJump(not FEATURE.InfiniteJump)
-        else
-            -- if no GUI btn registered (shouldn't happen), toggle manually
-            FEATURE.InfiniteJump = not FEATURE.InfiniteJump
-            updateHUD("InfiniteJump", FEATURE.InfiniteJump)
-        end
+        if ToggleCallbacks and ToggleCallbacks.InfiniteJump then ToggleCallbacks.InfiniteJump(not FEATURE.InfiniteJump) end
     end
-
-    -- NEW: toggle Noclip with N
     if input.KeyCode == Enum.KeyCode.N then
-        if ToggleCallbacks and ToggleCallbacks.Noclip then
-            ToggleCallbacks.Noclip(not FEATURE.Noclip)
-        else
-            FEATURE.Noclip = not FEATURE.Noclip
-            updateHUD("NoClip", FEATURE.Noclip)
-        end
+        if ToggleCallbacks and ToggleCallbacks.Noclip then ToggleCallbacks.Noclip(not FEATURE.Noclip) end
     end
-
-    -- Space pressed -> start holding
     if input.KeyCode == Enum.KeyCode.Space then
         spaceHeld = true
     end
 end))
-
 keepPersistent(UIS.InputEnded:Connect(function(input, gp)
     if gp then return end
     if input.KeyCode == Enum.KeyCode.Space then
@@ -1351,16 +1329,13 @@ keepPersistent(UIS.InputEnded:Connect(function(input, gp)
     end
 end))
 
--- Register toggles into UI (so they get buttons and HUD sync)
--- We register these AFTER input handlers so ToggleCallbacks exist
+
 registerToggle("InfiniteJump", "InfiniteJump", function(state)
     updateHUD("InfiniteJump", state)
     if state then
-        -- start infinite jump loop
-        startInfiniteJumpLoop()
+        enableInfiniteJump()
     else
-        -- stop infinite jump loop (space no longer triggers)
-        stopInfiniteJumpLoop()
+        disableInfiniteJump()
     end
 end)
 
@@ -1419,4 +1394,3 @@ keepPersistent(UIS.InputBegan:Connect(function(input, gp)
         if ToggleCallbacks and ToggleCallbacks.Noclip then ToggleCallbacks.Noclip(not FEATURE.Noclip) end
     end
 end))
-
