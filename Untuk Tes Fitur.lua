@@ -582,15 +582,7 @@ local function disableNoclip()
         end
     end
 end
--- Register Infinite Jump and Noclip toggles
-registerToggle("InfiniteJump", "InfiniteJump", function(state)
-    if state then enableInfiniteJump() else disableInfiniteJump() end
-    updateHUD("InfiniteJump", state)
-end)
-registerToggle("Noclip", "Noclip", function(state)
-    if state then enableNoclip() else disableNoclip() end
-    updateHUD("Noclip", state)
-end)
+
 
 local function updateHUD(name, state)
     if hudLabels[name] then
@@ -642,6 +634,103 @@ local function registerToggle(displayName, featureKey, onChange)
     Buttons[featureKey] = btn
     return btn
 end
+
+
+-- UI TOGGLES & SEPARATORS (pindahkan ke bawah setelah registerToggle)
+createSeparator(Content, "Aimbot Settings")
+
+local aimFrame = Instance.new("Frame", Content)
+aimFrame.Size = UDim2.new(1,0,0,72)
+aimFrame.BackgroundTransparency = 1
+local aimLayout = Instance.new("UIListLayout", aimFrame)
+aimLayout.SortOrder = Enum.SortOrder.LayoutOrder
+aimLayout.Padding = UDim.new(0,6)
+
+local row = Instance.new("Frame", aimFrame)
+row.Size = UDim2.new(1,0,0,28)
+row.BackgroundTransparency = 1
+
+local predBtn = Instance.new("TextButton", row)
+predBtn.Size = UDim2.new(0.42,0,1,0)
+predBtn.Position = UDim2.new(0,0,0,0)
+predBtn.BackgroundColor3 = Color3.fromRGB(36,36,36)
+predBtn.Font = Enum.Font.Gotham
+predBtn.TextSize = 13
+predBtn.TextColor3 = Color3.fromRGB(235,235,235)
+predBtn.Text = "Predictive: " .. (FEATURE.PredictiveAim and "ON" or "OFF")
+Instance.new("UICorner", predBtn).CornerRadius = UDim.new(0,6)
+predBtn.MouseButton1Click:Connect(function()
+    FEATURE.PredictiveAim = not FEATURE.PredictiveAim
+    predBtn.Text = "Predictive: " .. (FEATURE.PredictiveAim and "ON" or "OFF")
+    updateHUD("PredictiveAim", FEATURE.PredictiveAim)
+end)
+
+local speedBox = Instance.new("TextBox", row)
+speedBox.Size = UDim2.new(0.28,0,1,0)
+speedBox.Position = UDim2.new(0.44,6,0,0)
+speedBox.BackgroundColor3 = Color3.fromRGB(36,36,36)
+speedBox.TextColor3 = Color3.fromRGB(240,240,240)
+speedBox.Font = Enum.Font.Gotham
+speedBox.TextSize = 13
+speedBox.ClearTextOnFocus = false
+speedBox.Text = tostring(FEATURE.ProjectileSpeed)
+speedBox.PlaceholderText = "Speed"
+Instance.new("UICorner", speedBox).CornerRadius = UDim.new(0,6)
+speedBox.FocusLost:Connect(function(enter)
+    if enter then
+        local n = tonumber(speedBox.Text)
+        if n and n >= 10 and n <= 5000 then FEATURE.ProjectileSpeed = n else speedBox.Text = tostring(FEATURE.ProjectileSpeed) end
+    end
+end)
+
+local limitBox = Instance.new("TextBox", row)
+limitBox.Size = UDim2.new(0.28,0,1,0)
+limitBox.Position = UDim2.new(0.72,6,0,0)
+limitBox.BackgroundColor3 = Color3.fromRGB(36,36,36)
+limitBox.TextColor3 = Color3.fromRGB(240,240,240)
+limitBox.Font = Enum.Font.Gotham
+limitBox.TextSize = 13
+limitBox.ClearTextOnFocus = false
+limitBox.Text = tostring(FEATURE.PredictionLimit)
+limitBox.PlaceholderText = "Limit"
+Instance.new("UICorner", limitBox).CornerRadius = UDim.new(0,6)
+limitBox.FocusLost:Connect(function(enter)
+    if enter then
+        local n = tonumber(limitBox.Text)
+        if n and n >= 0.1 and n <= 5 then FEATURE.PredictionLimit = n else limitBox.Text = tostring(FEATURE.PredictionLimit) end
+    end
+end)
+
+registerToggle("Aimbot", "Aimbot", function(state) updateHUD("Aimbot", state) end)
+
+createSeparator(Content, "Utility")
+registerToggle("ESP", "ESP", function(state)
+    if state then enableESP() else disableESP() end
+    updateHUD("ESP", state)
+end)
+registerToggle("Auto Press E", "AutoE", function(state)
+    if state then startAutoE() else stopAutoE() end
+end)
+registerToggle("WalkSpeed", "WalkEnabled", function(state)
+    if state then
+        pcall(function()
+            local hum = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+            if hum and LocalPlayer.Character and OriginalWalkByCharacter[LocalPlayer.Character] == nil then OriginalWalkByCharacter[LocalPlayer.Character] = hum.WalkSpeed end
+            if hum then hum.WalkSpeed = FEATURE.WalkValue end
+        end)
+        updateHUD("WalkSpeed", true)
+    else
+        restoreWalkSpeedForCharacter(LocalPlayer.Character)
+    end
+end)
+registerToggle("InfiniteJump", "InfiniteJump", function(state)
+    if state then enableInfiniteJump() else disableInfiniteJump() end
+    updateHUD("InfiniteJump", state)
+end)
+registerToggle("Noclip", "Noclip", function(state)
+    if state then enableNoclip() else disableNoclip() end
+    updateHUD("Noclip", state)
+end)
 
 do
     local frame = Instance.new("Frame", Content)
