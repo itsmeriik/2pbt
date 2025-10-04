@@ -11,7 +11,7 @@ local Camera = Workspace.CurrentCamera or Workspace:FindFirstChild("CurrentCamer
 if not Camera then
     local ok, cam = pcall(function() return Workspace:WaitForChild("CurrentCamera", 5) end)
     Camera = ok and cam or Workspace.CurrentCamera
-end
+
 
 local VIM = nil
 pcall(function() VIM = game:GetService("VirtualInputManager") end)
@@ -103,43 +103,6 @@ local TELEPORT_COORDS = {
         Neutral = Vector3.new(-24.8, 42.3, -83.2),
     },
 }
-
-local PersistentConnections = {}
-local PerPlayerConnections = {}
-
-local function keepPersistent(conn)
-    if conn and typeof(conn) == "RBXScriptConnection" and conn.Connected then
-        table.insert(PersistentConnections, conn)
-    end
-    return conn
-end
-
-local function addPerPlayerConnection(p, conn)
-    if not p or not conn then return conn end
-    if typeof(conn) == "RBXScriptConnection" and conn.Connected then
-        PerPlayerConnections[p] = PerPlayerConnections[p] or {}
-        table.insert(PerPlayerConnections[p], conn)
-    end
-    return conn
-end
-
-local function clearConnectionsForPlayer(p)
-    local t = PerPlayerConnections[p]
-    if t then
-        for _, c in ipairs(t) do
-            if typeof(c) == "RBXScriptConnection" and c.Connected then
-                pcall(function() c:Disconnect() end)
-            end
-        end
-        PerPlayerConnections[p] = nil
-    end
-end
-
-local function clearAllPerPlayerConnections()
-    for p, _ in pairs(PerPlayerConnections) do
-        clearConnectionsForPlayer(p)
-    end
-end
 
 local function clearAllConnections()
     clearAllPerPlayerConnections()
@@ -486,75 +449,26 @@ Instance.new("UICorner", HUD).CornerRadius = UDim.new(0,8)
 local HUDList = Instance.new("UIListLayout", HUD)
 HUDList.Padding = UDim.new(0,4)
 HUDList.SortOrder = Enum.SortOrder.LayoutOrder
-local hudLabels = {}
-local function hudAdd(name)
-    local l = Instance.new("TextLabel", HUD)
-    l.Size = UDim2.new(1,-12,0,18)
-    l.Position = UDim2.new(0,8,0,0)
-    l.BackgroundTransparency = 1
-    l.Font = Enum.Font.Gotham
-    l.TextSize = 13
-    l.TextColor3 = Color3.fromRGB(220,220,220)
-    l.TextXAlignment = Enum.TextXAlignment.Left
-    l.Text = name .. ": OFF"
-    l.Parent = HUD
-    hudLabels[name] = l
-end
-hudAdd("ESP")
-hudAdd("Auto Press E")
-hudAdd("WalkSpeed")
-hudAdd("Aimbot")
-
-hudAdd("PredictiveAim")
-hudAdd("Infinite Jump")
--- Infinite Jump logic
-local infiniteJumpConn = nil
-local function enableInfiniteJump()
-    if infiniteJumpConn then return end
-    local function onJumpRequest()
-        if FEATURE.InfiniteJump then
-            local char = LocalPlayer.Character
-            if char then
-                local hum = char:FindFirstChildOfClass("Humanoid")
-                if hum then
-                    hum:ChangeState(Enum.HumanoidStateType.Jumping)
-                end
-            end
-        end
-    end
-    infiniteJumpConn = UIS.JumpRequest:Connect(onJumpRequest)
-end
-
-local function disableInfiniteJump()
-    if infiniteJumpConn then
-        pcall(function() infiniteJumpConn:Disconnect() end)
-        infiniteJumpConn = nil
-    end
-end
-
-local function updateHUD(name, state)
-    if hudLabels[name] then
-        hudLabels[name].Text = name .. ": " .. (state and "ON" or "OFF")
-        hudLabels[name].TextColor3 = state and Color3.fromRGB(80,200,120) or Color3.fromRGB(200,200,200)
-    end
-end
-
-local function createSeparator(parent, text)
-    local lab = Instance.new("TextLabel", parent)
-    lab.Size = UDim2.new(1,0,0,18)
-    lab.BackgroundTransparency = 1
-    lab.Font = Enum.Font.Gotham
-    lab.TextSize = 12
-    lab.TextColor3 = Color3.fromRGB(170,170,170)
-    lab.Text = "─────────  " .. (text or "") .. "  ─────────"
-    lab.TextXAlignment = Enum.TextXAlignment.Center
-    return lab
-end
-
 local ToggleCallbacks = {}
 local Buttons = {}
+-- Make toggles scrollable
+local toggleScroll = Instance.new("ScrollingFrame", Content)
+toggleScroll.Name = "ToggleScroll"
+toggleScroll.Size = UDim2.new(1,0,0,180)
+toggleScroll.Position = UDim2.new(0,0,0,0)
+toggleScroll.BackgroundTransparency = 1
+toggleScroll.ScrollBarThickness = 6
+toggleScroll.CanvasSize = UDim2.new(0,0,0,0)
+toggleScroll.VerticalScrollBarInset = Enum.ScrollBarInset.Always
+local toggleListLayout = Instance.new("UIListLayout", toggleScroll)
+toggleListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+toggleListLayout.Padding = UDim.new(0,8)
+toggleListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+    toggleScroll.CanvasSize = UDim2.new(0,0,0, toggleListLayout.AbsoluteContentSize.Y + 8)
+end)
+
 local function registerToggle(displayName, featureKey, onChange)
-    local btn = Instance.new("TextButton", Content)
+    local btn = Instance.new("TextButton", toggleScroll)
     btn.Size = UDim2.new(1,0,0,32)
     btn.BackgroundColor3 = Color3.fromRGB(36,36,36)
     btn.TextColor3 = Color3.fromRGB(235,235,235)
@@ -562,7 +476,7 @@ local function registerToggle(displayName, featureKey, onChange)
     btn.TextSize = 14
     btn.Text = displayName .. " [OFF]"
     Instance.new("UICorner", btn).CornerRadius = UDim.new(0,6)
-    btn.Parent = Content
+    btn.Parent = toggleScroll
     local function setState(state)
         local ok, err = pcall(function()
             local old = FEATURE[featureKey]
@@ -574,15 +488,7 @@ local function registerToggle(displayName, featureKey, onChange)
                 local ok2, err2 = pcall(onChange, state)
                 if not ok2 then
                     warn("Toggle callback error:", err2)
-                    FEATURE[featureKey] = old
-                end
-            end
-        end)
-        if not ok then
-            warn("Toggle UI error:", err)
-        end
-    end
-    btn.MouseButton1Click:Connect(function() setState(not FEATURE[featureKey]) end)
+
     ToggleCallbacks[featureKey] = setState
     Buttons[featureKey] = btn
     return btn
@@ -624,7 +530,41 @@ do
         end
     end)
 end
-local espObjects = setmetatable({}, { __mode = "k" })
+-- No Clip feature
+FEATURE.NoClip = false
+local noclipConn = nil
+local function enableNoClip()
+    if noclipConn then return end
+    noclipConn = RunService.Stepped:Connect(function()
+        if FEATURE.NoClip then
+            local char = LocalPlayer.Character
+            if char then
+                for _, v in ipairs(char:GetChildren()) do
+                    if v:IsA("BasePart") then
+                        v.CanCollide = false
+                    end
+                end
+            end
+        end
+    end)
+end
+local function disableNoClip()
+    if noclipConn then
+        pcall(function() noclipConn:Disconnect() end)
+        noclipConn = nil
+    end
+    -- Restore collision
+    local char = LocalPlayer.Character
+    if char then
+        for _, v in ipairs(char:GetChildren()) do
+            if v:IsA("BasePart") then
+                v.CanCollide = true
+            end
+        end
+    end
+end
+
+-- ...existing code...
 local function getESPColor(p)
     if p.Team and LocalPlayer.Team and p.Team == LocalPlayer.Team then return Color3.fromRGB(0,200,0) else return Color3.fromRGB(200,40,40) end
 end
@@ -1185,8 +1125,8 @@ limitBox.FocusLost:Connect(function(enter)
     end
 end)
 
-registerToggle("Aimbot", "Aimbot", function(state) updateHUD("Aimbot", state) end)
 
+registerToggle("Aimbot", "Aimbot", function(state) updateHUD("Aimbot", state) end)
 
 createSeparator(Content, "Utility")
 registerToggle("ESP", "ESP", function(state)
@@ -1211,6 +1151,10 @@ end)
 registerToggle("Infinite Jump", "InfiniteJump", function(state)
     if state then enableInfiniteJump() else disableInfiniteJump() end
     updateHUD("Infinite Jump", state)
+end)
+registerToggle("No Clip", "NoClip", function(state)
+    if state then enableNoClip() else disableNoClip() end
+    updateHUD("No Clip", state)
 end)
 
 for k,_ in pairs(FEATURE) do
@@ -1243,5 +1187,8 @@ keepPersistent(UIS.InputBegan:Connect(function(input, gp)
     end
     if input.KeyCode == Enum.KeyCode.J then
         if ToggleCallbacks and ToggleCallbacks.InfiniteJump then ToggleCallbacks.InfiniteJump(not FEATURE.InfiniteJump) end
+    end
+    if input.KeyCode == Enum.KeyCode.N then
+        if ToggleCallbacks and ToggleCallbacks.NoClip then ToggleCallbacks.NoClip(not FEATURE.NoClip) end
     end
 end))
